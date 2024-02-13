@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live chord</title>
+  <script src="https://cdn.jsdelivr.net/npm/tonal/browser/tonal.min.js"></script>
+
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      font-family: sans-serif;
+      gap: 1rem;
+
+      overflow: scroll;
+    }
+
+    rect {
+      transition: fill 0.5s;
+    }
+
+    svg {
+      margin-block: 10rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Live chord</h1>
+
+  <script type="module">
+    import { FrequencyViz, WaveformViz, HarmonyViz, PianoViz } from './visualizations.js'
+
+    if (navigator.mediaDevices) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(function (stream) {
+          const audioContext = new AudioContext()
+          const analyser = audioContext.createAnalyser()
+          const microphone = audioContext.createMediaStreamSource(stream)
+
+          microphone.connect(analyser)
+
+          analyser.fftSize = Math.pow(2, 11)
+          const bufferLength = analyser.frequencyBinCount
+          const dataArray = new Uint8Array(bufferLength)
+          analyser.getByteTimeDomainData(dataArray)
+
+          const vizs = [
+            new FrequencyViz(document.body),
+            new WaveformViz(document.body),
+            new HarmonyViz(document.body),
+            new PianoViz(document.body)
+          ]
+
+          function draw(time) {
+            requestAnimationFrame(draw)
+            vizs.forEach(viz => viz.draw({analyser, bufferLength, dataArray, audioContext, time}))
+          }
+
+          draw()
+        })
+    }
+  </script>
+</body>
+</html>
